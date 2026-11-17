@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
   ArrowRight,
@@ -62,6 +62,25 @@ type Goal = {
   total: number
   accent: string
   icon: LucideIcon
+  nextStep: string
+}
+
+type CoupleProfile = {
+  name: string
+  partnerName: string
+  location: string
+  yearsTogether: number
+  availableTime: string
+  budget: string
+  connection: string
+  place: string
+}
+
+type GoalDraft = {
+  title: string
+  description: string
+  total: number
+  accent: string
   nextStep: string
 }
 
@@ -189,6 +208,34 @@ const initialGoals: Goal[] = [
   },
 ]
 
+const defaultProfile: CoupleProfile = {
+  name: 'Yuri',
+  partnerName: 'Vitoria',
+  location: 'Florianópolis, SC',
+  yearsTogether: 4,
+  availableTime: 'Até 1 hora',
+  budget: 'Até R$ 80',
+  connection: 'Conversas & novidades',
+  place: 'Em casa e perto',
+}
+
+function usePersistentState<T>(key: string, initialValue: T) {
+  const [value, setValue] = useState<T>(() => {
+    try {
+      const stored = window.localStorage.getItem(key)
+      return stored ? JSON.parse(stored) as T : initialValue
+    } catch {
+      return initialValue
+    }
+  })
+
+  useEffect(() => {
+    window.localStorage.setItem(key, JSON.stringify(value))
+  }, [key, value])
+
+  return [value, setValue] as const
+}
+
 const navItems: Array<{ id: Tab; label: string; icon: LucideIcon }> = [
   { id: 'home', label: 'Início', icon: Home },
   { id: 'discover', label: 'Descobrir', icon: Compass },
@@ -197,7 +244,7 @@ const navItems: Array<{ id: Tab; label: string; icon: LucideIcon }> = [
 ]
 
 const pageCopy: Record<Tab, { eyebrow: string; title: string; subtitle: string }> = {
-  home: { eyebrow: 'Terça, 10 de novembro', title: 'Continuem escolhendo um ao outro.', subtitle: 'Pequenas escolhas também constroem uma história grande.' },
+  home: { eyebrow: new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()), title: 'Continuem escolhendo um ao outro.', subtitle: 'Pequenas escolhas também constroem uma história grande.' },
   discover: { eyebrow: 'Curadoria para vocês', title: 'O que combina com o momento?', subtitle: 'Ideias simples, filtradas pelo tempo e pelo jeito de vocês.' },
   goals: { eyebrow: 'Construindo lado a lado', title: 'Planos que viram memória.', subtitle: 'Acompanhem os pequenos passos que fazem sentido para o casal.' },
   profile: { eyebrow: 'O jeito de vocês', title: 'Conhecer também é cuidar.', subtitle: 'As preferências abaixo ajudam a deixar cada sugestão mais com a cara de vocês.' },
@@ -205,12 +252,17 @@ const pageCopy: Record<Tab, { eyebrow: string; title: string; subtitle: string }
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>(tabFromPath())
-  const [savedIds, setSavedIds] = useState<number[]>([2, 5])
-  const [completedIds, setCompletedIds] = useState<number[]>([3])
-  const [goals, setGoals] = useState<Goal[]>(initialGoals)
+  const [savedIds, setSavedIds] = usePersistentState<number[]>('nos:saved', [2, 5])
+  const [completedIds, setCompletedIds] = usePersistentState<number[]>('nos:completed', [3])
+  const [goals, setGoals] = usePersistentState<Goal[]>('nos:goals', initialGoals)
+  const [profile, setProfile] = usePersistentState<CoupleProfile>('nos:profile', defaultProfile)
   const [discoverMode, setDiscoverMode] = useState<DiscoverMode>('all')
   const [filters, setFilters] = useState<Record<FilterKey, string>>({ time: 'Qualquer duração', budget: 'Qualquer orçamento', type: 'Todos os tipos' })
   const [toast, setToast] = useState('')
+  const [modal, setModal] = useState<'profile' | 'goal' | 'notifications' | null>(null)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [editingGoalId, setEditingGoalId] = useState<number | null>(null)
+  const [goalDraft, setGoalDraft] = useState<GoalDraft>({ title: '', description: '', total: 5, accent: 'coral', nextStep: 'Escolher o primeiro passo' })
 
   const navigate = (tab: Tab) => {
     setActiveTab(tab)
@@ -236,6 +288,47 @@ function App() {
   const updateGoal = (id: number) => {
     setGoals((current) => current.map((goal) => goal.id === id ? { ...goal, progress: Math.min(goal.total, goal.progress + 1) } : goal))
     showToast('Progresso atualizado para vocês dois.')
+  }
+
+  const openNewGoal = () => {
+    setEditingGoalId(null)
+    setGoalDraft({ title: '', description: '', total: 5, accent: 'coral', nextStep: 'Escolher o primeiro passo' })
+    setModal('goal')
+  }
+
+  const openEditGoal = (goal: Goal) => {
+    setEditingGoalId(goal.id)
+    setGoalDraft({ title: goal.title, description: goal.description, total: goal.total, accent: goal.accent, nextStep: goal.nextStep })
+    setModal('goal')
+  }
+
+  const saveGoal = () => {
+    if (!goalDraft.title.trim() || !goalDraft.description.trim()) {
+      showToast('Preencham título e descrição para salvar o objetivo.')
+      return
+    }
+    if (editingGoalId) {
+      setGoals((current) => current.map((goal) => goal.id === editingGoalId ? { ...goal, ...goalDraft, total: Math.max(goal.progress, goalDraft.total) } : goal))
+      showToast('Objetivo atualizado.')
+    } else {
+      const newGoal: Goal = { id: Date.now(), ...goalDraft, progress: 0, icon: Target }
+      setGoals((current) => [...current, newGoal])
+      showToast('Novo objetivo criado para vocês.')
+    }
+    setModal(null)
+  }
+
+  const deleteGoal = () => {
+    if (!editingGoalId) return
+    setGoals((current) => current.filter((goal) => goal.id !== editingGoalId))
+    setModal(null)
+    showToast('Objetivo removido.')
+  }
+
+  const saveProfile = (nextProfile: CoupleProfile) => {
+    setProfile(nextProfile)
+    setModal(null)
+    showToast('Perfil atualizado com sucesso.')
   }
 
   const filteredExperiences = useMemo(() => experiences.filter((experience) => {
@@ -278,7 +371,7 @@ function App() {
         <div className="sidebar-footer">
           <button className="mini-profile" onClick={() => navigate('profile')}>
             <div className="avatar avatar-small avatar-photo">Y<span>&</span>V</div>
-            <div><strong>Yuri & Vitoria</strong><span>Juntos há 4 anos</span></div>
+            <div><strong>{profile.name} & {profile.partnerName}</strong><span>Juntos há {profile.yearsTogether} anos</span></div>
             <MoreHorizontal size={17} />
           </button>
         </div>
@@ -286,19 +379,20 @@ function App() {
 
       <main className="main-content">
         <header className="topbar">
-          <button className="mobile-menu" aria-label="Abrir menu"><Menu size={21} /></button>
+          <button className="mobile-menu" aria-label="Abrir menu" onClick={() => setMobileMenuOpen(true)}><Menu size={21} /></button>
           <div className="breadcrumbs"><span>Espaço do casal</span><ChevronRight size={14} /><strong>{pageCopy[activeTab].title}</strong></div>
           <div className="topbar-actions">
-            <button className="icon-button notification-button" aria-label="Notificações"><Bell size={18} /><span /></button>
-            <button className="avatar avatar-photo" onClick={() => navigate('profile')} aria-label="Abrir perfil">Y<span>&</span>M</button>
+            <button className="icon-button notification-button" aria-label="Notificações" onClick={() => setModal('notifications')}><Bell size={18} /><span /></button>
+            <button className="avatar avatar-photo" onClick={() => navigate('profile')} aria-label="Abrir perfil">{profile.name[0]}<span>&</span>{profile.partnerName[0]}</button>
           </div>
         </header>
 
         <div className="page-wrap">
           {activeTab === 'home' && <HomePage navigate={navigate} savedIds={savedIds} completedIds={completedIds} toggleSaved={toggleSaved} toggleCompleted={toggleCompleted} overallProgress={overallProgress} goals={goals} />}
           {activeTab === 'discover' && <DiscoverPage experiences={filteredExperiences} filters={filters} setFilters={setFilters} discoverMode={discoverMode} setDiscoverMode={setDiscoverMode} savedIds={savedIds} completedIds={completedIds} toggleSaved={toggleSaved} toggleCompleted={toggleCompleted} resetFilters={() => setFilters({ time: 'Qualquer duração', budget: 'Qualquer orçamento', type: 'Todos os tipos' })} />}
-          {activeTab === 'goals' && <GoalsPage goals={goals} updateGoal={updateGoal} navigate={navigate} />}
-          {activeTab === 'profile' && <ProfilePage navigate={navigate} />}
+          {activeTab === 'goals' && <GoalsPage goals={goals} updateGoal={updateGoal} navigate={navigate} openNewGoal={openNewGoal} openEditGoal={openEditGoal} />}
+          {activeTab === 'profile' && <ProfilePage profile={profile} savedCount={savedIds.length} navigate={navigate} openProfileEditor={() => setModal('profile')} />}
+
         </div>
       </main>
 
@@ -307,6 +401,10 @@ function App() {
       </nav>
 
       {toast && <div className="toast"><CheckCircle2 size={17} />{toast}</div>}
+      {mobileMenuOpen && <MobileDrawer activeTab={activeTab} navigate={(tab) => { navigate(tab); setMobileMenuOpen(false) }} close={() => setMobileMenuOpen(false)} />}
+      {modal === 'profile' && <ProfileModal profile={profile} onClose={() => setModal(null)} onSave={saveProfile} />}
+      {modal === 'goal' && <GoalModal draft={goalDraft} editing={Boolean(editingGoalId)} onChange={setGoalDraft} onClose={() => setModal(null)} onSave={saveGoal} onDelete={editingGoalId ? deleteGoal : undefined} />}
+      {modal === 'notifications' && <NotificationsModal onClose={() => setModal(null)} />}
     </div>
   )
 }
@@ -380,13 +478,36 @@ function ExperienceCard({ experience, isSaved, isCompleted, toggleSaved, toggleC
 
 function EmptyState({ onReset }: { onReset: () => void }) { return <div className="empty-state"><div className="empty-icon"><Compass size={24} /></div><h3>Nenhuma ideia por aqui.</h3><p>Tentem abrir um pouco os filtros para encontrar um momento que caiba no agora.</p><button className="button button-outline" onClick={onReset}>Ver todas as ideias</button></div> }
 
-function GoalsPage({ goals, updateGoal, navigate }: { goals: Goal[]; updateGoal: (id: number) => void; navigate: (tab: Tab) => void }) { return <div className="page goals-page"><section className="page-heading"><div><div className="eyebrow"><span className="eyebrow-line" />{pageCopy.goals.eyebrow}</div><h1>{pageCopy.goals.title}</h1><p className="page-subtitle">{pageCopy.goals.subtitle}</p></div><button className="button button-dark new-goal-button"><Plus size={17} /> novo objetivo</button></section><section className="goals-overview"><div className="overview-copy"><span className="card-label">ritmo de vocês</span><h2>O importante é continuar.</h2><p>Não existe meta pequena quando ela é feita a dois. Vocês já deram <strong>{goals.reduce((sum, goal) => sum + goal.progress, 0)} passos</strong> na direção do que querem viver.</p><button className="text-button" onClick={() => navigate('discover')}>Encontrar um próximo passo <ArrowRight size={15} /></button></div><div className="overview-chart"><div className="chart-ring"><div><strong>68</strong><span>dias de<br />presença</span></div></div><div className="chart-legend"><span><i className="legend-dot coral" /> momentos juntos</span><span><i className="legend-dot sage" /> conversas</span><span><i className="legend-dot lilac" /> planos</span></div></div></section><div className="goals-list-heading"><div><span className="card-label">objetivos ativos</span><h2>Do desejo ao hábito.</h2></div><span className="goal-count">{goals.length} objetivos <CheckCircle2 size={15} /></span></div><section className="goals-grid">{goals.map((goal) => <GoalCard key={goal.id} goal={goal} updateGoal={updateGoal} />)}</section></div> }
+function GoalsPage({ goals, updateGoal, navigate, openNewGoal, openEditGoal }: { goals: Goal[]; updateGoal: (id: number) => void; navigate: (tab: Tab) => void; openNewGoal: () => void; openEditGoal: (goal: Goal) => void }) { return <div className="page goals-page"><section className="page-heading"><div><div className="eyebrow"><span className="eyebrow-line" />{pageCopy.goals.eyebrow}</div><h1>{pageCopy.goals.title}</h1><p className="page-subtitle">{pageCopy.goals.subtitle}</p></div><button className="button button-dark new-goal-button" onClick={openNewGoal}><Plus size={17} /> novo objetivo</button></section><section className="goals-overview"><div className="overview-copy"><span className="card-label">ritmo de vocês</span><h2>O importante é continuar.</h2><p>Não existe meta pequena quando ela é feita a dois. Vocês já deram <strong>{goals.reduce((sum, goal) => sum + goal.progress, 0)} passos</strong> na direção do que querem viver.</p><button className="text-button" onClick={() => navigate('discover')}>Encontrar um próximo passo <ArrowRight size={15} /></button></div><div className="overview-chart"><div className="chart-ring"><div><strong>68</strong><span>dias de<br />presença</span></div></div><div className="chart-legend"><span><i className="legend-dot coral" /> momentos juntos</span><span><i className="legend-dot sage" /> conversas</span><span><i className="legend-dot lilac" /> planos</span></div></div></section><div className="goals-list-heading"><div><span className="card-label">objetivos ativos</span><h2>Do desejo ao hábito.</h2></div><span className="goal-count">{goals.length} objetivos <CheckCircle2 size={15} /></span></div><section className="goals-grid">{goals.map((goal) => <GoalCard key={goal.id} goal={goal} updateGoal={updateGoal} onEdit={() => openEditGoal(goal)} />)}</section></div> }
 
-function GoalCard({ goal, updateGoal }: { goal: Goal; updateGoal: (id: number) => void }) { const Icon = goal.icon; const isDone = goal.progress >= goal.total; return <article className={`goal-card ${goal.accent}`}><div className="goal-card-top"><div className={`large-goal-icon ${goal.accent}`}><Icon size={22} /></div><button className="icon-button ghost"><MoreHorizontal size={18} /></button></div><div className="goal-card-copy"><span className="card-label">objetivo compartilhado</span><h3>{goal.title}</h3><p>{goal.description}</p></div><div className="goal-progress-row"><strong>{goal.progress}<span>/{goal.total}</span></strong><div className="progress-track"><span className={goal.accent} style={{ width: `${(goal.progress / goal.total) * 100}%` }} /></div><span>{Math.round((goal.progress / goal.total) * 100)}%</span></div><div className="goal-card-footer"><span><TrendingUp size={14} /> {isDone ? 'Objetivo concluído' : goal.nextStep}</span><button className={`advance-button ${isDone ? 'done' : ''}`} onClick={() => !isDone && updateGoal(goal.id)}>{isDone ? <Check size={15} /> : <><Plus size={14} /> avançar</>}</button></div></article> }
+function GoalCard({ goal, updateGoal, onEdit }: { goal: Goal; updateGoal: (id: number) => void; onEdit: () => void }) { const Icon = goal.icon; const isDone = goal.progress >= goal.total; return <article className={`goal-card ${goal.accent}`}><div className="goal-card-top"><div className={`large-goal-icon ${goal.accent}`}><Icon size={22} /></div><button className="icon-button ghost" onClick={onEdit} aria-label={`Editar ${goal.title}`}><MoreHorizontal size={18} /></button></div><div className="goal-card-copy"><span className="card-label">objetivo compartilhado</span><h3>{goal.title}</h3><p>{goal.description}</p></div><div className="goal-progress-row"><strong>{goal.progress}<span>/{goal.total}</span></strong><div className="progress-track"><span className={goal.accent} style={{ width: `${(goal.progress / goal.total) * 100}%` }} /></div><span>{Math.round((goal.progress / goal.total) * 100)}%</span></div><div className="goal-card-footer"><span><TrendingUp size={14} /> {isDone ? 'Objetivo concluído' : goal.nextStep}</span><button className={`advance-button ${isDone ? 'done' : ''}`} onClick={() => !isDone && updateGoal(goal.id)}>{isDone ? <Check size={15} /> : <><Plus size={14} /> avançar</>}</button></div></article> }
 
-function ProfilePage({ navigate }: { navigate: (tab: Tab) => void }) { return <div className="page profile-page"><section className="page-heading"><div><div className="eyebrow"><span className="eyebrow-line" />{pageCopy.profile.eyebrow}</div><h1>{pageCopy.profile.title}</h1><p className="page-subtitle">{pageCopy.profile.subtitle}</p></div><button className="icon-button settings-button"><Settings2 size={18} /></button></section><section className="profile-hero"><div className="profile-avatars"><div className="avatar avatar-large avatar-photo">Y</div><div className="avatar avatar-large avatar-photo second">V</div><div className="profile-heart"><Heart size={17} fill="currentColor" /></div></div><div className="profile-identity"><span className="card-label">nosso perfil</span><h2>Yuri & Vitoria</h2><p>Juntos há 4 anos · Florianópolis, SC</p><button className="text-button">editar perfil <ArrowRight size={14} /></button></div><div className="profile-quote"><span>“</span><p>o amor mora<br />nos detalhes</p></div></section><div className="profile-columns"><section className="panel preferences-panel"><div className="panel-heading"><div><span className="card-label">preferências do casal</span><h3>Do jeito de vocês</h3></div><button className="icon-button ghost"><Settings2 size={16} /></button></div><div className="preference-list"><PreferenceRow icon={Clock3} label="Tempo disponível" value="Até 1 hora" /><PreferenceRow icon={WalletCards} label="Orçamento comum" value="Até R$ 80" /><PreferenceRow icon={HeartHandshake} label="O que conecta" value="Conversas & novidades" /><PreferenceRow icon={MapPin} label="Onde costumam estar" value="Em casa e perto" /></div></section><section className="panel about-panel"><div className="panel-heading"><div><span className="card-label">sobre o espaço</span><h3>Um lugar só de vocês</h3></div><Heart size={19} className="coral-text" fill="currentColor" /></div><p>O Nós foi pensado para tirar o relacionamento do piloto automático — com leveza, curiosidade e ideias possíveis para a vida real.</p><div className="about-stat"><div><strong>04</strong><span>anos de história</span></div><div><strong>24</strong><span>momentos vividos</span></div><div><strong>07</strong><span>salvos para depois</span></div></div><button className="button button-outline full-button" onClick={() => navigate('discover')}>explorar ideias <Compass size={16} /></button></section></div></div> }
+function ProfilePage({ profile, savedCount, navigate, openProfileEditor }: { profile: CoupleProfile; savedCount: number; navigate: (tab: Tab) => void; openProfileEditor: () => void }) { return <div className="page profile-page"><section className="page-heading"><div><div className="eyebrow"><span className="eyebrow-line" />{pageCopy.profile.eyebrow}</div><h1>{pageCopy.profile.title}</h1><p className="page-subtitle">{pageCopy.profile.subtitle}</p></div><button className="icon-button settings-button" onClick={openProfileEditor} aria-label="Editar perfil"><Settings2 size={18} /></button></section><section className="profile-hero"><div className="profile-avatars"><div className="avatar avatar-large avatar-photo">{profile.name[0]}</div><div className="avatar avatar-large avatar-photo second">{profile.partnerName[0]}</div><div className="profile-heart"><Heart size={17} fill="currentColor" /></div></div><div className="profile-identity"><span className="card-label">nosso perfil</span><h2>{profile.name} & {profile.partnerName}</h2><p>Juntos há {profile.yearsTogether} anos · {profile.location}</p><button className="text-button" onClick={openProfileEditor}>editar perfil <ArrowRight size={14} /></button></div><div className="profile-quote"><span>“</span><p>o amor mora<br />nos detalhes</p></div></section><div className="profile-columns"><section className="panel preferences-panel"><div className="panel-heading"><div><span className="card-label">preferências do casal</span><h3>Do jeito de vocês</h3></div><button className="icon-button ghost" onClick={openProfileEditor} aria-label="Editar preferências"><Settings2 size={16} /></button></div><div className="preference-list"><PreferenceRow icon={Clock3} label="Tempo disponível" value={profile.availableTime} onClick={openProfileEditor} /><PreferenceRow icon={WalletCards} label="Orçamento comum" value={profile.budget} onClick={openProfileEditor} /><PreferenceRow icon={HeartHandshake} label="O que conecta" value={profile.connection} onClick={openProfileEditor} /><PreferenceRow icon={MapPin} label="Onde costumam estar" value={profile.place} onClick={openProfileEditor} /></div></section><section className="panel about-panel"><div className="panel-heading"><div><span className="card-label">sobre o espaço</span><h3>Um lugar só de vocês</h3></div><Heart size={19} className="coral-text" fill="currentColor" /></div><p>O Nós foi pensado para tirar o relacionamento do piloto automático — com leveza, curiosidade e ideias possíveis para a vida real.</p><div className="about-stat"><div><strong>{String(profile.yearsTogether).padStart(2, '0')}</strong><span>anos de história</span></div><div><strong>24</strong><span>momentos vividos</span></div><div><strong>{String(savedCount).padStart(2, '0')}</strong><span>salvos para depois</span></div></div><button className="button button-outline full-button" onClick={() => navigate('discover')}>explorar ideias <Compass size={16} /></button></section></div></div> }
 
-function PreferenceRow({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) { return <div className="preference-row"><div className="preference-icon"><Icon size={17} /></div><div><span>{label}</span><strong>{value}</strong></div><ChevronRight size={16} className="muted-chevron" /></div> }
+function PreferenceRow({ icon: Icon, label, value, onClick }: { icon: LucideIcon; label: string; value: string; onClick: () => void }) { return <button className="preference-row" onClick={onClick}><div className="preference-icon"><Icon size={17} /></div><div><span>{label}</span><strong>{value}</strong></div><ChevronRight size={16} className="muted-chevron" /></button> }
+
+function ModalShell({ title, eyebrow, children, onClose, wide = false }: { title: string; eyebrow: string; children: React.ReactNode; onClose: () => void; wide?: boolean }) {
+  return <div className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><section className={`modal-card ${wide ? 'modal-wide' : ''}`} role="dialog" aria-modal="true" aria-label={title}><div className="modal-header"><div><span className="card-label">{eyebrow}</span><h2>{title}</h2></div><button className="icon-button ghost" onClick={onClose} aria-label="Fechar"><X size={18} /></button></div>{children}</section></div>
+}
+
+function ProfileModal({ profile, onClose, onSave }: { profile: CoupleProfile; onClose: () => void; onSave: (profile: CoupleProfile) => void }) {
+  const [draft, setDraft] = useState(profile)
+  const update = (key: keyof CoupleProfile, value: string | number) => setDraft((current) => ({ ...current, [key]: value }))
+  return <ModalShell title="Editar o jeito de vocês" eyebrow="preferências do casal" onClose={onClose} wide><div className="form-grid"><label>Seu nome<input value={draft.name} onChange={(event) => update('name', event.target.value)} /></label><label>Nome da pessoa parceira<input value={draft.partnerName} onChange={(event) => update('partnerName', event.target.value)} /></label><label>Onde vocês estão<input value={draft.location} onChange={(event) => update('location', event.target.value)} /></label><label>Há quantos anos juntos<input type="number" min="0" max="100" value={draft.yearsTogether} onChange={(event) => update('yearsTogether', Number(event.target.value))} /></label><label>Tempo mais comum<select value={draft.availableTime} onChange={(event) => update('availableTime', event.target.value)}><option>Até 30 min</option><option>Até 1 hora</option><option>Mais de 1 hora</option></select></label><label>Orçamento comum<select value={draft.budget} onChange={(event) => update('budget', event.target.value)}><option>Grátis</option><option>Até R$ 80</option><option>Até R$ 200</option><option>Qualquer orçamento</option></select></label><label>O que mais conecta vocês<select value={draft.connection} onChange={(event) => update('connection', event.target.value)}><option>Conversas & novidades</option><option>Comida & passeios</option><option>Planos & viagens</option><option>Descanso & casa</option></select></label><label>Onde costumam estar<select value={draft.place} onChange={(event) => update('place', event.target.value)}><option>Em casa e perto</option><option>Mais lá fora</option><option>Em viagens</option></select></label></div><div className="modal-actions"><button className="button button-outline" onClick={onClose}>cancelar</button><button className="button button-dark" onClick={() => onSave(draft)}>salvar perfil <Check size={15} /></button></div></ModalShell>
+}
+
+function GoalModal({ draft, editing, onChange, onClose, onSave, onDelete }: { draft: GoalDraft; editing: boolean; onChange: (draft: GoalDraft) => void; onClose: () => void; onSave: () => void; onDelete?: () => void }) {
+  const update = (key: keyof GoalDraft, value: string | number) => onChange({ ...draft, [key]: value })
+  return <ModalShell title={editing ? 'Ajustar objetivo' : 'Criar novo objetivo'} eyebrow={editing ? 'objetivo compartilhado' : 'um plano para vocês'} onClose={onClose}><div className="goal-form"><label>Nome do objetivo<input autoFocus value={draft.title} placeholder="Ex.: fazer 6 trilhas juntos" onChange={(event) => update('title', event.target.value)} /></label><label>O que vocês querem construir?<textarea value={draft.description} placeholder="Contem em uma frase por que isso importa." onChange={(event) => update('description', event.target.value)} /></label><div className="form-row"><label>Quantidade de passos<input type="number" min="1" max="100" value={draft.total} onChange={(event) => update('total', Math.max(1, Number(event.target.value)))} /></label><label>Próximo passo<input value={draft.nextStep} onChange={(event) => update('nextStep', event.target.value)} /></label></div><label>Cor do objetivo<select value={draft.accent} onChange={(event) => update('accent', event.target.value)}><option value="coral">Coral</option><option value="sage">Verde</option><option value="lilac">Lilás</option></select></label></div><div className="modal-actions">{onDelete && <button className="danger-button" onClick={onDelete}>excluir objetivo</button>}<span /><button className="button button-outline" onClick={onClose}>cancelar</button><button className="button button-dark" onClick={onSave}>{editing ? 'salvar alterações' : 'criar objetivo'} <ArrowRight size={15} /></button></div></ModalShell>
+}
+
+function NotificationsModal({ onClose }: { onClose: () => void }) {
+  return <ModalShell title="Um lembrete gentil" eyebrow="notificações" onClose={onClose}><div className="notification-list"><div className="notification-item unread"><div className="notification-symbol"><Sparkles size={17} /></div><div><strong>Uma ideia para hoje</strong><p>Que tal escolher uma experiência para viver nesta semana?</p><span>agora</span></div></div><div className="notification-item"><div className="notification-symbol sage"><Target size={17} /></div><div><strong>Objetivo em andamento</strong><p>Vocês estão a 5 passos de completar “12 momentos só nossos”.</p><span>há 2 dias</span></div></div></div><div className="modal-actions"><span /><button className="button button-dark" onClick={onClose}>tudo certo <Check size={15} /></button></div></ModalShell>
+}
+
+function MobileDrawer({ activeTab, navigate, close }: { activeTab: Tab; navigate: (tab: Tab) => void; close: () => void }) {
+  return <div className="mobile-drawer-backdrop" onMouseDown={(event) => event.target === event.currentTarget && close()}><aside className="mobile-drawer"><div className="mobile-drawer-header"><div className="brand-lockup"><div className="brand-mark"><HeartHandshake size={20} /></div><div><strong>Nós</strong><span>cultive o que vocês têm</span></div></div><button className="icon-button ghost" onClick={close}><X size={18} /></button></div><div className="sidebar-section-label">Menu</div><nav className="mobile-drawer-nav">{navItems.map(({ id, label, icon: Icon }) => <button key={id} className={activeTab === id ? 'active' : ''} onClick={() => navigate(id)}><Icon size={19} /><span>{label}</span></button>)}</nav><div className="mobile-drawer-note"><Sparkles size={17} /><p>Pequenas escolhas também constroem uma história grande.</p></div></aside></div>
+}
 
 function tabFromPath(): Tab { const path = window.location.pathname; if (path.includes('descobrir')) return 'discover'; if (path.includes('objetivos')) return 'goals'; if (path.includes('perfil')) return 'profile'; return 'home' }
 
