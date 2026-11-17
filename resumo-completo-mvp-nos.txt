@@ -1,0 +1,224 @@
+RESUMO COMPLETO — MVP NÓS
+Cultive o que vocês têm
+
+Data da revisão: 16/11/2026
+Projeto: /home/ubuntu/nos
+Checkpoint principal desta entrega: será registrado após a validação final
+
+1. VISÃO DO PRODUTO
+
+O Nós é um aplicativo para casais criado para ajudar duas pessoas a manterem o relacionamento vivo por meio de experiências, atividades, objetivos e pequenas ações de conexão. A proposta é sair do piloto automático e transformar intenção em momentos possíveis para a vida real.
+
+A evolução desta versão mudou o modelo principal do produto: a conta pertence sempre a uma pessoa individual. A pessoa pode permanecer no seu espaço pessoal ou entrar em um casal com outra pessoa por meio de um código de convite. Quando o vínculo é criado, o espaço compartilhado é desbloqueado e passa a conter experiências, objetivos, progresso, atividades sociais e competição amigável entre casais.
+
+2. O QUE FOI DESENVOLVIDO
+
+2.1 Conta individual
+
+Foi criada uma estrutura de conta individual com nome e e-mail. A tela Minha conta apresenta os dados da pessoa, permite editar essas informações e deixa explícito que a identidade da conta não depende de um relacionamento.
+
+O estado da conta é salvo localmente no navegador com a chave nos:account. Em uma versão de produção, esse estado deve migrar para um sistema de autenticação e uma tabela de usuários.
+
+2.2 Vínculo com um casal
+
+A conta pode estar vinculada ou não a um casal. O vínculo é representado pelo estado CoupleConnection, que contém:
+
+- linked: indica se o espaço compartilhado está desbloqueado;
+- coupleName: nome exibido para o casal;
+- partnerName: nome da outra pessoa;
+- inviteCode: código usado no vínculo;
+- joinedAt: informação de quando o vínculo foi criado.
+
+O fluxo possui modal para entrar em um casal com código de convite, exibe o código atual do casal e permite sair do vínculo. O código demonstrativo para Yuri & Vitoria é NOS-YV4K.
+
+A função joinCouple normaliza o código recebido, cria o vínculo local e libera as áreas compartilhadas. A função leaveCouple remove o vínculo e retorna a pessoa para o espaço pessoal.
+
+2.3 Bloqueio e desbloqueio das funcionalidades
+
+Quando a conta não está vinculada a um casal, as áreas Início, Descobrir, Objetivos e Comunidade não ficam disponíveis. A aplicação mostra uma tela de bloqueio com explicação e um botão para conectar ao casal.
+
+A área Minha conta continua disponível para que a pessoa possa editar os próprios dados e criar ou aceitar um vínculo. Depois que linked passa a ser true, as áreas compartilhadas são renderizadas normalmente.
+
+O MVP inicial abre em modo demonstrativo já vinculado para que a experiência de Yuri e Vitoria continue navegável. O fluxo de saída permite testar o estado bloqueado e o fluxo de entrada novamente.
+
+2.4 Descobrir experiências
+
+A área Descobrir contém seis ideias de atividades para casais, cada uma com título, descrição, categoria, duração, orçamento, localização, cor e ícone.
+
+As experiências podem ser filtradas por duração, orçamento e tipo de programa. Também existem abas para todas as ideias, ideias salvas e ideias concluídas. A pessoa pode salvar uma experiência ou marcá-la como vivida.
+
+Os estados são persistidos localmente com as chaves nos:saved e nos:completed.
+
+2.5 Objetivos compartilhados
+
+A área Objetivos permite acompanhar planos de médio prazo. Cada objetivo possui título, descrição, progresso, total de etapas, cor e próximo passo.
+
+O usuário pode criar um objetivo, editar seus dados, excluir um objetivo ou avançar uma etapa. Os objetivos são salvos com a chave nos:goals.
+
+Foi corrigido um problema importante de persistência: componentes React de ícones não podem ser serializados diretamente no localStorage. Os cards agora usam ícones estáveis derivados do identificador do objetivo, impedindo que a tela fique em branco após o recarregamento.
+
+2.6 Perfil e preferências do casal
+
+O perfil do casal permite editar nomes, localização, tempo juntos, disponibilidade, orçamento, tipo de conexão e locais preferidos. Essas informações são armazenadas com a chave nos:profile.
+
+A tela separa claramente a conta individual do vínculo de casal. Isso evita confundir a identidade pessoal com o espaço compartilhado.
+
+2.7 Comunidade e amigos
+
+Foi criada uma nova área Comunidade. Ela apresenta um sistema demonstrativo para acompanhar outros casais, com:
+
+- ranking semanal;
+- pontos acumulados pelo casal;
+- posição atual e distância para subir no placar;
+- lista de outros casais;
+- cidade e sequência de uso;
+- atividades recentes dos amigos;
+- código para convidar outros casais;
+- aviso de privacidade explicando que só atividades liberadas aparecem.
+
+Os casais demonstrativos são Bia & Rafa, Lia & Caio, Nina & Gui e Maya & Leo. As atividades mostradas incluem experiências feitas, objetivos concluídos, ideias salvas e perguntas respondidas.
+
+O botão convidar amigos abre um modal com o código NOS-FRIENDS e permite copiá-lo. No produto real, esse fluxo deve criar um convite persistido no backend e associá-lo ao usuário ou casal destinatário.
+
+2.8 Competitividade entre casais
+
+A competição foi desenhada como uma camada de motivação leve, sem transformar o relacionamento em uma prova de desempenho. Os pontos representam experiências vividas, objetivos avançados e ações de conexão.
+
+A Comunidade mostra o placar, os pontos, as sequências e a atividade recente. O casal demonstrativo Yuri & Vitoria aparece em quarto lugar com 340 pontos. Esses valores ainda são dados de demonstração e não são calculados em um banco real.
+
+2.9 Interações e responsividade
+
+Também foram concluídos os fluxos que anteriormente eram apenas visuais: menu mobile, notificações, edição de perfil, edição de conta, criação e edição de objetivos, vínculo de casal, convite de amigos, salvar experiências, marcar experiências como concluídas e feedbacks por toast.
+
+A identidade visual foi preservada: fundo marfim, verde sálvia, coral suave, lilás, tipografia editorial com Playfair Display e interface de baixa densidade visual.
+
+3. ARQUITETURA ATUAL
+
+A aplicação é uma SPA em React com TypeScript e Vite. O arquivo principal é src/App.tsx. Os estilos ficam em src/styles.css. Os ícones vêm de lucide-react.
+
+A navegação é feita por estado React e atualiza a URL com history.pushState. As rotas de página são:
+
+/                       Início
+/descobrir              Descobrir
+/objetivos              Objetivos
+/comunidade             Comunidade
+/perfil                 Minha conta
+
+O manifesto público de rotas fica em public/manus-routes.json.
+
+O componente App concentra os estados do MVP, incluindo conta, vínculo, perfil, objetivos, experiências, filtros, modais e mensagens de feedback. Os dados demonstrativos ficam no próprio App.tsx para permitir um protótipo rápido sem backend.
+
+O hook usePersistentState encapsula leitura e escrita no localStorage. As chaves atuais são:
+
+nos:saved       IDs de experiências salvas
+nos:completed   IDs de experiências concluídas
+nos:goals       objetivos do casal
+nos:profile     preferências do casal
+nos:account     conta individual
+nos:connection  vínculo entre conta e casal
+
+4. COMO EXECUTAR O PROJETO
+
+Requisitos: Node.js, npm e acesso ao diretório do projeto.
+
+Comandos principais:
+
+cd /home/ubuntu/nos
+npm install
+npm run dev
+
+O Preview utiliza a porta 3000. Para abrir o aplicativo localmente, acesse o endereço indicado pelo ambiente WebDev.
+
+Para criar uma versão de produção:
+
+npm run build
+
+O build executa o TypeScript e gera os arquivos estáticos em dist. O comando deve terminar sem erros e dist/index.html deve existir.
+
+Para conferir o manifesto de rotas durante o desenvolvimento:
+
+curl http://127.0.0.1:3000/manus-routes.json
+
+5. COMO CONTINUAR O DESENVOLVIMENTO
+
+A primeira evolução técnica deve ser separar o monólito atual em componentes e serviços menores. Uma estrutura recomendada é:
+
+src/
+  app/
+    routes.ts
+    types.ts
+    storage.ts
+  components/
+    ModalShell.tsx
+    AccountCard.tsx
+    CoupleConnectionCard.tsx
+    ExperienceCard.tsx
+    GoalCard.tsx
+    CommunityCard.tsx
+  pages/
+    HomePage.tsx
+    DiscoverPage.tsx
+    GoalsPage.tsx
+    CommunityPage.tsx
+    AccountPage.tsx
+  data/
+    experiences.ts
+    demoCommunity.ts
+  styles/
+    tokens.css
+    layout.css
+    components.css
+
+Essa separação não é necessária para continuar o protótipo, mas reduz o risco de o App.tsx crescer demais.
+
+6. COMO TRANSFORMAR O MVP EM PRODUTO REAL
+
+6.1 Autenticação
+
+Adicionar autenticação real com e-mail e senha, login social ou provedor escolhido. A conta individual deve ter um userId estável. Nunca confiar apenas no localStorage para autenticação ou autorização.
+
+6.2 Banco de dados
+
+Criar tabelas ou coleções para users, couples, couple_members, couple_invites, experiences, couple_experiences, goals, goal_progress, friendships, activities, leaderboard_periods e privacy_settings.
+
+A relação entre usuário e casal deve ser explícita. Uma pessoa pode estar em um casal ativo e o casal deve ter no máximo dois membros no fluxo inicial.
+
+6.3 Convites
+
+O código de convite deve ser criado no servidor, ter expiração opcional, impedir reutilização indevida e registrar quem convidou, quem aceitou e quando o vínculo foi criado. O cliente deve apenas solicitar e exibir o resultado do servidor.
+
+6.4 Sincronização
+
+Experiências concluídas, objetivos, progressos e preferências precisam ser persistidos no backend para que as duas pessoas vejam as mesmas informações em dispositivos diferentes.
+
+6.5 Amigos e privacidade
+
+Criar solicitações de amizade ou de acompanhamento entre casais. Cada casal deve escolher se quer compartilhar experiências concluídas, objetivos, pontuação, sequência e atividades recentes. O padrão recomendado é privado até que o casal autorize o compartilhamento.
+
+6.6 Ranking
+
+Definir uma fórmula de pontuação transparente, com limites contra spam. Exemplos: experiência concluída, objetivo avançado, conversa feita, sequência semanal e participação em desafio. O ranking pode ser semanal, mensal ou entre amigos, evitando competição global obrigatória.
+
+6.7 Notificações
+
+Persistir notificações no backend e usar notificações push ou e-mail apenas com consentimento. Exemplos: convite recebido, vínculo aceito, amigo concluiu uma atividade e novo desafio disponível.
+
+7. LIMITES ATUAIS DO MVP
+
+Esta versão ainda é um protótipo front-end. Não existe servidor, autenticação real, banco, sincronização entre dispositivos ou comunicação real entre usuários.
+
+O ranking e os casais da Comunidade são dados demonstrativos. O código de convite apenas altera o estado local e não cria um vínculo entre duas contas reais.
+
+O armazenamento local é útil para demonstração, mas pode ser apagado pelo navegador, não deve conter dados sensíveis e não substitui uma camada de persistência real.
+
+8. VALIDAÇÃO REALIZADA
+
+O projeto foi compilado com npm run build após a implementação da camada social. O servidor de desenvolvimento responde na porta 3000. O manifesto de rotas responde HTTP 200 e inclui a rota /comunidade.
+
+As telas de Comunidade e Minha conta foram capturadas no Preview interno. A composição visual foi conferida em desktop. O código também mantém suporte responsivo para mobile com menu lateral e navegação inferior de cinco áreas.
+
+9. CHECKPOINT
+
+A entrega deve ser registrada no branch main do repositório conectado ao projeto. O checkpoint anterior da revisão funcional era 5b96496; esta nova entrega deve gerar um novo SHA depois do commit final.
+
+FIM DO RESUMO

@@ -12,6 +12,11 @@ import {
   ChevronRight,
   CircleUserRound,
   Clock3,
+  Link2,
+  LockKeyhole,
+  LogOut,
+  Trophy,
+  UserPlus,
   Coffee,
   Compass,
   Heart,
@@ -26,6 +31,7 @@ import {
   Plus,
   RotateCcw,
   Settings2,
+  ShieldCheck,
   Sparkles,
   Target,
   TrendingUp,
@@ -34,7 +40,7 @@ import {
   X,
 } from 'lucide-react'
 
-type Tab = 'home' | 'discover' | 'goals' | 'profile'
+type Tab = 'home' | 'discover' | 'goals' | 'community' | 'profile'
 type DiscoverMode = 'all' | 'saved' | 'completed'
 type FilterKey = 'time' | 'budget' | 'type'
 
@@ -82,6 +88,32 @@ type GoalDraft = {
   total: number
   accent: string
   nextStep: string
+}
+
+type AccountProfile = {
+  name: string
+  email: string
+}
+
+type CoupleConnection = {
+  linked: boolean
+  coupleName: string
+  partnerName: string
+  inviteCode: string
+  joinedAt: string
+}
+
+type CommunityCouple = {
+  id: number
+  names: string
+  initials: string
+  city: string
+  points: number
+  position: number
+  streak: string
+  activity: string
+  activityMeta: string
+  accent: string
 }
 
 const experiences: Experience[] = [
@@ -208,6 +240,23 @@ const initialGoals: Goal[] = [
   },
 ]
 
+const defaultAccount: AccountProfile = { name: 'Yuri', email: 'yuri@nos.app' }
+
+const defaultConnection: CoupleConnection = {
+  linked: true,
+  coupleName: 'Yuri & Vitoria',
+  partnerName: 'Vitoria',
+  inviteCode: 'NOS-YV4K',
+  joinedAt: 'há 4 anos',
+}
+
+const communityCouples: CommunityCouple[] = [
+  { id: 1, names: 'Bia & Rafa', initials: 'B&R', city: 'Curitiba, PR', points: 1840, position: 1, streak: '12 semanas', activity: 'Cozinharam algo novo juntos', activityMeta: 'há 2 horas · experiência', accent: 'coral' },
+  { id: 2, names: 'Lia & Caio', initials: 'L&C', city: 'Belo Horizonte, MG', points: 1695, position: 2, streak: '9 semanas', activity: 'Concluíram “12 momentos só nossos”', activityMeta: 'ontem · objetivo', accent: 'sage' },
+  { id: 3, names: 'Nina & Gui', initials: 'N&G', city: 'São Paulo, SP', points: 1510, position: 3, streak: '7 semanas', activity: 'Salvaram uma ideia para o fim de semana', activityMeta: 'ontem · descoberta', accent: 'lilac' },
+  { id: 4, names: 'Maya & Leo', initials: 'M&L', city: 'Recife, PE', points: 1380, position: 4, streak: '5 semanas', activity: 'Responderam uma pergunta juntos', activityMeta: 'há 3 dias · conexão', accent: 'yellow' },
+]
+
 const defaultProfile: CoupleProfile = {
   name: 'Yuri',
   partnerName: 'Vitoria',
@@ -240,14 +289,16 @@ const navItems: Array<{ id: Tab; label: string; icon: LucideIcon }> = [
   { id: 'home', label: 'Início', icon: Home },
   { id: 'discover', label: 'Descobrir', icon: Compass },
   { id: 'goals', label: 'Objetivos', icon: Target },
-  { id: 'profile', label: 'Perfil', icon: CircleUserRound },
+  { id: 'community', label: 'Comunidade', icon: UsersRound },
+  { id: 'profile', label: 'Minha conta', icon: CircleUserRound },
 ]
 
 const pageCopy: Record<Tab, { eyebrow: string; title: string; subtitle: string }> = {
   home: { eyebrow: new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()), title: 'Continuem escolhendo um ao outro.', subtitle: 'Pequenas escolhas também constroem uma história grande.' },
   discover: { eyebrow: 'Curadoria para vocês', title: 'O que combina com o momento?', subtitle: 'Ideias simples, filtradas pelo tempo e pelo jeito de vocês.' },
   goals: { eyebrow: 'Construindo lado a lado', title: 'Planos que viram memória.', subtitle: 'Acompanhem os pequenos passos que fazem sentido para o casal.' },
-  profile: { eyebrow: 'O jeito de vocês', title: 'Conhecer também é cuidar.', subtitle: 'As preferências abaixo ajudam a deixar cada sugestão mais com a cara de vocês.' },
+  community: { eyebrow: 'Casais que inspiram', title: 'Juntos, dá mais vontade.', subtitle: 'Acompanhem atividades, conquistas e desafios de outros casais.' },
+  profile: { eyebrow: 'Sua conta', title: 'O jeito de vocês começa em cada pessoa.', subtitle: 'Sua conta é individual. O vínculo de casal desbloqueia o espaço compartilhado.' },
 }
 
 function App() {
@@ -256,17 +307,25 @@ function App() {
   const [completedIds, setCompletedIds] = usePersistentState<number[]>('nos:completed', [3])
   const [goals, setGoals] = usePersistentState<Goal[]>('nos:goals', initialGoals)
   const [profile, setProfile] = usePersistentState<CoupleProfile>('nos:profile', defaultProfile)
+  const [account, setAccount] = usePersistentState<AccountProfile>('nos:account', defaultAccount)
+  const [connection, setConnection] = usePersistentState<CoupleConnection>('nos:connection', defaultConnection)
   const [discoverMode, setDiscoverMode] = useState<DiscoverMode>('all')
   const [filters, setFilters] = useState<Record<FilterKey, string>>({ time: 'Qualquer duração', budget: 'Qualquer orçamento', type: 'Todos os tipos' })
   const [toast, setToast] = useState('')
-  const [modal, setModal] = useState<'profile' | 'goal' | 'notifications' | null>(null)
+  const [modal, setModal] = useState<'account' | 'profile' | 'goal' | 'notifications' | 'pair' | 'friends' | null>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [editingGoalId, setEditingGoalId] = useState<number | null>(null)
   const [goalDraft, setGoalDraft] = useState<GoalDraft>({ title: '', description: '', total: 5, accent: 'coral', nextStep: 'Escolher o primeiro passo' })
 
   const navigate = (tab: Tab) => {
+    if (!connection.linked && tab !== 'profile') {
+      setActiveTab('profile')
+      setModal('pair')
+      showToast('Conecte-se a um casal para desbloquear este espaço.')
+      return
+    }
     setActiveTab(tab)
-    window.history.pushState({}, '', tab === 'home' ? '/' : `/${tab === 'discover' ? 'descobrir' : tab === 'goals' ? 'objetivos' : 'perfil'}`)
+    window.history.pushState({}, '', tab === 'home' ? '/' : `/${tab === 'discover' ? 'descobrir' : tab === 'goals' ? 'objetivos' : tab === 'community' ? 'comunidade' : 'perfil'}`)
   }
 
   const showToast = (message: string) => {
@@ -328,7 +387,32 @@ function App() {
   const saveProfile = (nextProfile: CoupleProfile) => {
     setProfile(nextProfile)
     setModal(null)
-    showToast('Perfil atualizado com sucesso.')
+    showToast('Preferências do casal atualizadas.')
+  }
+
+  const saveAccount = (nextAccount: AccountProfile) => {
+    setAccount(nextAccount)
+    setProfile((current) => ({ ...current, name: nextAccount.name }))
+    setModal(null)
+    showToast('Sua conta individual foi atualizada.')
+  }
+
+  const joinCouple = (code: string) => {
+    if (!code.trim()) {
+      showToast('Digite um código de convite para entrar em um casal.')
+      return
+    }
+    const normalized = code.trim().toUpperCase()
+    setConnection({ linked: true, coupleName: normalized === 'NOS-YV4K' ? 'Yuri & Vitoria' : `${account.name} & novo par`, partnerName: normalized === 'NOS-YV4K' ? 'Vitoria' : 'novo par', inviteCode: normalized, joinedAt: 'agora' })
+    setModal(null)
+    showToast('Vínculo criado. Todas as funções foram desbloqueadas.')
+  }
+
+  const leaveCouple = () => {
+    setConnection((current) => ({ ...current, linked: false, coupleName: '', partnerName: '' }))
+    setModal(null)
+    setActiveTab('profile')
+    showToast('Você saiu do casal. O espaço compartilhado está bloqueado.')
   }
 
   const filteredExperiences = useMemo(() => experiences.filter((experience) => {
@@ -388,10 +472,13 @@ function App() {
         </header>
 
         <div className="page-wrap">
-          {activeTab === 'home' && <HomePage navigate={navigate} savedIds={savedIds} completedIds={completedIds} toggleSaved={toggleSaved} toggleCompleted={toggleCompleted} overallProgress={overallProgress} goals={goals} />}
-          {activeTab === 'discover' && <DiscoverPage experiences={filteredExperiences} filters={filters} setFilters={setFilters} discoverMode={discoverMode} setDiscoverMode={setDiscoverMode} savedIds={savedIds} completedIds={completedIds} toggleSaved={toggleSaved} toggleCompleted={toggleCompleted} resetFilters={() => setFilters({ time: 'Qualquer duração', budget: 'Qualquer orçamento', type: 'Todos os tipos' })} />}
-          {activeTab === 'goals' && <GoalsPage goals={goals} updateGoal={updateGoal} navigate={navigate} openNewGoal={openNewGoal} openEditGoal={openEditGoal} />}
-          {activeTab === 'profile' && <ProfilePage profile={profile} savedCount={savedIds.length} navigate={navigate} openProfileEditor={() => setModal('profile')} />}
+          {!connection.linked && activeTab !== 'profile' ? <UnlockGate openPairEditor={() => setModal('pair')} /> : null}
+          {connection.linked && activeTab === 'home' && <HomePage navigate={navigate} savedIds={savedIds} completedIds={completedIds} toggleSaved={toggleSaved} toggleCompleted={toggleCompleted} overallProgress={overallProgress} goals={goals} />}
+          {connection.linked && activeTab === 'discover' && <DiscoverPage experiences={filteredExperiences} filters={filters} setFilters={setFilters} discoverMode={discoverMode} setDiscoverMode={setDiscoverMode} savedIds={savedIds} completedIds={completedIds} toggleSaved={toggleSaved} toggleCompleted={toggleCompleted} resetFilters={() => setFilters({ time: 'Qualquer duração', budget: 'Qualquer orçamento', type: 'Todos os tipos' })} />}
+          {connection.linked && activeTab === 'goals' && <GoalsPage goals={goals} updateGoal={updateGoal} navigate={navigate} openNewGoal={openNewGoal} openEditGoal={openEditGoal} />}
+          {connection.linked && activeTab === 'community' && <CommunityPage connection={connection} onInvite={() => setModal('friends')} />}
+          {activeTab === 'profile' && <ProfilePage account={account} connection={connection} profile={profile} savedCount={savedIds.length} navigate={navigate} openAccountEditor={() => setModal('account')} openProfileEditor={() => setModal('profile')} openPairEditor={() => setModal('pair')} onLeaveCouple={leaveCouple} />}
+
 
         </div>
       </main>
@@ -402,7 +489,10 @@ function App() {
 
       {toast && <div className="toast"><CheckCircle2 size={17} />{toast}</div>}
       {mobileMenuOpen && <MobileDrawer activeTab={activeTab} navigate={(tab) => { navigate(tab); setMobileMenuOpen(false) }} close={() => setMobileMenuOpen(false)} />}
+      {modal === 'account' && <AccountModal account={account} onClose={() => setModal(null)} onSave={saveAccount} />}
       {modal === 'profile' && <ProfileModal profile={profile} onClose={() => setModal(null)} onSave={saveProfile} />}
+      {modal === 'friends' && <FriendsModal onClose={() => setModal(null)} />}
+      {modal === 'pair' && <PairModal connection={connection} onClose={() => setModal(null)} onJoin={joinCouple} onLeave={connection.linked ? leaveCouple : undefined} />}
       {modal === 'goal' && <GoalModal draft={goalDraft} editing={Boolean(editingGoalId)} onChange={setGoalDraft} onClose={() => setModal(null)} onSave={saveGoal} onDelete={editingGoalId ? deleteGoal : undefined} />}
       {modal === 'notifications' && <NotificationsModal onClose={() => setModal(null)} />}
     </div>
@@ -482,7 +572,34 @@ function GoalsPage({ goals, updateGoal, navigate, openNewGoal, openEditGoal }: {
 
 function GoalCard({ goal, updateGoal, onEdit }: { goal: Goal; updateGoal: (id: number) => void; onEdit: () => void }) { const Icon = goal.id === 1 ? Heart : goal.id === 2 ? WalletCards : goal.id === 3 ? Lightbulb : Target; const isDone = goal.progress >= goal.total; return <article className={`goal-card ${goal.accent}`}><div className="goal-card-top"><div className={`large-goal-icon ${goal.accent}`}><Icon size={22} /></div><button className="icon-button ghost" onClick={onEdit} aria-label={`Editar ${goal.title}`}><MoreHorizontal size={18} /></button></div><div className="goal-card-copy"><span className="card-label">objetivo compartilhado</span><h3>{goal.title}</h3><p>{goal.description}</p></div><div className="goal-progress-row"><strong>{goal.progress}<span>/{goal.total}</span></strong><div className="progress-track"><span className={goal.accent} style={{ width: `${(goal.progress / goal.total) * 100}%` }} /></div><span>{Math.round((goal.progress / goal.total) * 100)}%</span></div><div className="goal-card-footer"><span><TrendingUp size={14} /> {isDone ? 'Objetivo concluído' : goal.nextStep}</span><button className={`advance-button ${isDone ? 'done' : ''}`} onClick={() => !isDone && updateGoal(goal.id)}>{isDone ? <Check size={15} /> : <><Plus size={14} /> avançar</>}</button></div></article> }
 
-function ProfilePage({ profile, savedCount, navigate, openProfileEditor }: { profile: CoupleProfile; savedCount: number; navigate: (tab: Tab) => void; openProfileEditor: () => void }) { return <div className="page profile-page"><section className="page-heading"><div><div className="eyebrow"><span className="eyebrow-line" />{pageCopy.profile.eyebrow}</div><h1>{pageCopy.profile.title}</h1><p className="page-subtitle">{pageCopy.profile.subtitle}</p></div><button className="icon-button settings-button" onClick={openProfileEditor} aria-label="Editar perfil"><Settings2 size={18} /></button></section><section className="profile-hero"><div className="profile-avatars"><div className="avatar avatar-large avatar-photo">{profile.name[0]}</div><div className="avatar avatar-large avatar-photo second">{profile.partnerName[0]}</div><div className="profile-heart"><Heart size={17} fill="currentColor" /></div></div><div className="profile-identity"><span className="card-label">nosso perfil</span><h2>{profile.name} & {profile.partnerName}</h2><p>Juntos há {profile.yearsTogether} anos · {profile.location}</p><button className="text-button" onClick={openProfileEditor}>editar perfil <ArrowRight size={14} /></button></div><div className="profile-quote"><span>“</span><p>o amor mora<br />nos detalhes</p></div></section><div className="profile-columns"><section className="panel preferences-panel"><div className="panel-heading"><div><span className="card-label">preferências do casal</span><h3>Do jeito de vocês</h3></div><button className="icon-button ghost" onClick={openProfileEditor} aria-label="Editar preferências"><Settings2 size={16} /></button></div><div className="preference-list"><PreferenceRow icon={Clock3} label="Tempo disponível" value={profile.availableTime} onClick={openProfileEditor} /><PreferenceRow icon={WalletCards} label="Orçamento comum" value={profile.budget} onClick={openProfileEditor} /><PreferenceRow icon={HeartHandshake} label="O que conecta" value={profile.connection} onClick={openProfileEditor} /><PreferenceRow icon={MapPin} label="Onde costumam estar" value={profile.place} onClick={openProfileEditor} /></div></section><section className="panel about-panel"><div className="panel-heading"><div><span className="card-label">sobre o espaço</span><h3>Um lugar só de vocês</h3></div><Heart size={19} className="coral-text" fill="currentColor" /></div><p>O Nós foi pensado para tirar o relacionamento do piloto automático — com leveza, curiosidade e ideias possíveis para a vida real.</p><div className="about-stat"><div><strong>{String(profile.yearsTogether).padStart(2, '0')}</strong><span>anos de história</span></div><div><strong>24</strong><span>momentos vividos</span></div><div><strong>{String(savedCount).padStart(2, '0')}</strong><span>salvos para depois</span></div></div><button className="button button-outline full-button" onClick={() => navigate('discover')}>explorar ideias <Compass size={16} /></button></section></div></div> }
+function UnlockGate({ openPairEditor }: { openPairEditor: () => void }) {
+  return <div className="page locked-page"><div className="locked-orbit"><LockKeyhole size={29} /></div><span className="card-label">espaço compartilhado bloqueado</span><h1>Falta só um vínculo para desbloquear o Nós.</h1><p>Crie ou aceite um convite de casal para liberar experiências, objetivos, progresso e a comunidade competitiva.</p><button className="button button-dark" onClick={openPairEditor}><Link2 size={16} /> conectar ao casal</button></div>
+}
+
+function CommunityPage({ connection, onInvite }: { connection: CoupleConnection; onInvite: () => void }) {
+  return <div className="page community-page"><section className="page-heading"><div><div className="eyebrow"><span className="eyebrow-line" />{pageCopy.community.eyebrow}</div><h1>{pageCopy.community.title}</h1><p className="page-subtitle">{pageCopy.community.subtitle}</p></div><div className="heading-badge"><Trophy size={17} /><span><strong>+240</strong> pontos esta semana</span></div></section><section className="community-hero"><div><span className="pill pill-light"><Trophy size={13} /> ranking da semana</span><h2>O casal de vocês está em <em>4º lugar.</em></h2><p>Vocês ganharam 340 pontos com experiências vividas, objetivos avançados e conversas concluídas.</p><button className="button button-dark">ver desafio da semana <ArrowRight size={15} /></button></div><div className="community-score"><strong>340</strong><span>pontos do casal</span><div className="score-bar"><span /></div><small>120 pontos para subir uma posição</small></div></section><div className="community-grid"><section className="panel leaderboard-panel"><div className="panel-heading"><div><span className="card-label">placar dos amigos</span><h3>Quem está cultivando junto.</h3></div><UsersRound size={19} className="coral-text" /></div><div className="leaderboard-list">{communityCouples.map((couple) => <div className={`leader-row ${couple.position === 1 ? 'leader-top' : ''}`} key={couple.id}><strong className="leader-position">{couple.position}</strong><div className={`community-avatar ${couple.accent}`}>{couple.initials}</div><div className="leader-copy"><strong>{couple.names}</strong><span>{couple.city} · sequência de {couple.streak}</span></div><strong className="leader-points">{couple.points.toLocaleString('pt-BR')} <small>pts</small></strong></div>)}</div></section><section className="panel activity-panel"><div className="panel-heading"><div><span className="card-label">atividade dos amigos</span><h3>Inspiração em movimento.</h3></div><Sparkles size={18} className="coral-text" /></div><div className="activity-list">{communityCouples.slice(0, 3).map((couple) => <div className="activity-row" key={couple.id}><div className={`community-avatar small ${couple.accent}`}>{couple.initials}</div><div><strong>{couple.names}</strong><p>{couple.activity}</p><span>{couple.activityMeta}</span></div><button className="icon-button ghost" aria-label="Ver casal"><ArrowRight size={15} /></button></div>)}</div><button className="button button-outline full-button" onClick={onInvite}><UserPlus size={15} /> convidar amigos</button></section></div><p className="community-note"><ShieldCheck size={15} /> Vocês escolhem o que compartilhar. O placar mostra apenas atividades liberadas para amigos.</p></div>
+}
+
+function FriendsModal({ onClose }: { onClose: () => void }) {
+  const inviteCode = 'NOS-FRIENDS'
+  const copyInvite = () => {
+    if (navigator.clipboard) navigator.clipboard.writeText(inviteCode)
+    onClose()
+  }
+  return <ModalShell title="Tragam mais casais para perto" eyebrow="amigos e comunidade" onClose={onClose}><div className="pair-modal-hero"><div className="pair-symbol"><UserPlus size={21} /></div><div><strong>Compartilhe o código com outro casal</strong><p>Eles poderão acompanhar as atividades liberadas e aparecer no placar dos amigos.</p></div></div><div className="pair-code"><span>código de convite</span><strong>{inviteCode}</strong><small>O casal convidado escolhe o que quer compartilhar.</small></div><div className="modal-actions"><span /><button className="button button-outline" onClick={onClose}>fechar</button><button className="button button-dark" onClick={copyInvite}>copiar código <Link2 size={15} /></button></div></ModalShell>
+}
+
+function AccountModal({ account, onClose, onSave }: { account: AccountProfile; onClose: () => void; onSave: (account: AccountProfile) => void }) {
+  const [draft, setDraft] = useState(account)
+  return <ModalShell title="Sua conta, seu espaço" eyebrow="conta individual" onClose={onClose}><div className="goal-form"><label>Seu nome<input autoFocus value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} /></label><label>E-mail de acesso<input type="email" value={draft.email} onChange={(event) => setDraft({ ...draft, email: event.target.value })} /></label></div><div className="account-modal-note"><ShieldCheck size={16} /><p>A conta é sempre individual. O vínculo com outra pessoa cria um espaço de casal separado.</p></div><div className="modal-actions"><span /><button className="button button-outline" onClick={onClose}>cancelar</button><button className="button button-dark" onClick={() => onSave(draft)}>salvar conta <Check size={15} /></button></div></ModalShell>
+}
+
+function PairModal({ connection, onClose, onJoin, onLeave }: { connection: CoupleConnection; onClose: () => void; onJoin: (code: string) => void; onLeave?: () => void }) {
+  const [code, setCode] = useState('')
+  return <ModalShell title={connection.linked ? 'Gerenciar vínculo' : 'Entrar em um casal'} eyebrow="vínculo de casal" onClose={onClose}><div className="pair-modal-hero"><div className="pair-symbol"><Link2 size={21} /></div><div><strong>{connection.linked ? connection.coupleName : 'Nenhum casal conectado'}</strong><p>{connection.linked ? 'As funções compartilhadas estão liberadas para vocês.' : 'Peça à outra pessoa o código de convite gerado no app.'}</p></div></div>{!connection.linked && <div className="goal-form"><label>Código de convite<input autoFocus placeholder="Ex.: NOS-YV4K" value={code} onChange={(event) => setCode(event.target.value)} /></label></div>}{connection.linked && <div className="pair-code"><span>código do seu casal</span><strong>{connection.inviteCode}</strong><small>Compartilhe este código com a pessoa que você quer convidar.</small></div>}<div className="modal-actions">{onLeave && <button className="danger-button" onClick={onLeave}>sair do casal</button>}<span /><button className="button button-outline" onClick={onClose}>fechar</button>{!connection.linked && <button className="button button-dark" onClick={() => onJoin(code)}>entrar no casal <ArrowRight size={15} /></button>}</div></ModalShell>
+}
+
+function ProfilePage({ account, connection, profile, savedCount, navigate, openAccountEditor, openProfileEditor, openPairEditor, onLeaveCouple }: { account: AccountProfile; connection: CoupleConnection; profile: CoupleProfile; savedCount: number; navigate: (tab: Tab) => void; openAccountEditor: () => void; openProfileEditor: () => void; openPairEditor: () => void; onLeaveCouple: () => void }) { return <div className="page profile-page"><section className="page-heading"><div><div className="eyebrow"><span className="eyebrow-line" />{pageCopy.profile.eyebrow}</div><h1>{pageCopy.profile.title}</h1><p className="page-subtitle">{pageCopy.profile.subtitle}</p></div><button className="icon-button settings-button" onClick={openAccountEditor} aria-label="Editar minha conta"><Settings2 size={18} /></button></section><section className="account-card"><div className="account-avatar">{account.name[0]}</div><div className="account-card-copy"><span className="card-label">conta individual</span><h3>{account.name}</h3><p>{account.email}</p></div><span className="account-status"><ShieldCheck size={14} /> conta ativa</span><button className="text-button" onClick={openAccountEditor}>editar conta <ArrowRight size={14} /></button></section><section className={`connection-banner ${connection.linked ? 'linked' : 'unlinked'}`}><div className="connection-icon">{connection.linked ? <Link2 size={18} /> : <LockKeyhole size={18} />}</div><div><span className="card-label">vínculo de casal</span><h3>{connection.linked ? connection.coupleName : 'Você ainda não está em um casal'}</h3><p>{connection.linked ? `Conectado ${connection.joinedAt}. As experiências, objetivos e a comunidade estão liberados.` : 'Entre com o código de convite de outra pessoa para desbloquear todas as funções compartilhadas.'}</p></div><button className="button button-dark" onClick={openPairEditor}>{connection.linked ? 'gerenciar vínculo' : 'entrar em um casal'} <ArrowRight size={15} /></button></section><section className="profile-hero"><div className="profile-avatars"><div className="avatar avatar-large avatar-photo">{profile.name[0]}</div><div className="avatar avatar-large avatar-photo second">{profile.partnerName ? profile.partnerName[0] : '?'}</div><div className="profile-heart"><Heart size={17} fill="currentColor" /></div></div><div className="profile-identity"><span className="card-label">nosso perfil</span><h2>{connection.linked ? `${profile.name} & ${profile.partnerName}` : 'Seu espaço pessoal'}</h2><p>{connection.linked ? `Juntos há ${profile.yearsTogether} anos · ${profile.location}` : 'Vincule-se a um casal para começar a construir a dois.'}</p><button className="text-button" onClick={openProfileEditor}>editar preferências <ArrowRight size={14} /></button></div><div className="profile-quote"><span>“</span><p>o amor mora<br />nos detalhes</p></div></section><div className="profile-columns"><section className="panel preferences-panel"><div className="panel-heading"><div><span className="card-label">preferências do casal</span><h3>Do jeito de vocês</h3></div><button className="icon-button ghost" onClick={openProfileEditor} aria-label="Editar preferências"><Settings2 size={16} /></button></div><div className="preference-list"><PreferenceRow icon={Clock3} label="Tempo disponível" value={profile.availableTime} onClick={openProfileEditor} /><PreferenceRow icon={WalletCards} label="Orçamento comum" value={profile.budget} onClick={openProfileEditor} /><PreferenceRow icon={HeartHandshake} label="O que conecta" value={profile.connection} onClick={openProfileEditor} /><PreferenceRow icon={MapPin} label="Onde costumam estar" value={profile.place} onClick={openProfileEditor} /></div></section><section className="panel about-panel"><div className="panel-heading"><div><span className="card-label">sobre o espaço</span><h3>Um lugar só de vocês</h3></div><Heart size={19} className="coral-text" fill="currentColor" /></div><p>O Nós foi pensado para tirar o relacionamento do piloto automático — com leveza, curiosidade e ideias possíveis para a vida real.</p><div className="about-stat"><div><strong>{String(profile.yearsTogether).padStart(2, '0')}</strong><span>anos de história</span></div><div><strong>24</strong><span>momentos vividos</span></div><div><strong>{String(savedCount).padStart(2, '0')}</strong><span>salvos para depois</span></div></div><button className="button button-outline full-button" onClick={() => navigate('discover')}>explorar ideias <Compass size={16} /></button></section></div></div> }
 
 function PreferenceRow({ icon: Icon, label, value, onClick }: { icon: LucideIcon; label: string; value: string; onClick: () => void }) { return <button className="preference-row" onClick={onClick}><div className="preference-icon"><Icon size={17} /></div><div><span>{label}</span><strong>{value}</strong></div><ChevronRight size={16} className="muted-chevron" /></button> }
 
@@ -509,6 +626,6 @@ function MobileDrawer({ activeTab, navigate, close }: { activeTab: Tab; navigate
   return <div className="mobile-drawer-backdrop" onMouseDown={(event) => event.target === event.currentTarget && close()}><aside className="mobile-drawer"><div className="mobile-drawer-header"><div className="brand-lockup"><div className="brand-mark"><HeartHandshake size={20} /></div><div><strong>Nós</strong><span>cultive o que vocês têm</span></div></div><button className="icon-button ghost" onClick={close}><X size={18} /></button></div><div className="sidebar-section-label">Menu</div><nav className="mobile-drawer-nav">{navItems.map(({ id, label, icon: Icon }) => <button key={id} className={activeTab === id ? 'active' : ''} onClick={() => navigate(id)}><Icon size={19} /><span>{label}</span></button>)}</nav><div className="mobile-drawer-note"><Sparkles size={17} /><p>Pequenas escolhas também constroem uma história grande.</p></div></aside></div>
 }
 
-function tabFromPath(): Tab { const path = window.location.pathname; if (path.includes('descobrir')) return 'discover'; if (path.includes('objetivos')) return 'goals'; if (path.includes('perfil')) return 'profile'; return 'home' }
+function tabFromPath(): Tab { const path = window.location.pathname; if (path.includes('descobrir')) return 'discover'; if (path.includes('objetivos')) return 'goals'; if (path.includes('comunidade')) return 'community'; if (path.includes('perfil')) return 'profile'; return 'home' }
 
 export default App
