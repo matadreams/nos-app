@@ -222,3 +222,11 @@ As telas de Comunidade e Minha conta foram capturadas no Preview interno. A comp
 A entrega deve ser registrada no branch main do repositório conectado ao projeto. O checkpoint anterior da revisão funcional era 5b96496; esta nova entrega deve gerar um novo SHA depois do commit final.
 
 FIM DO RESUMO
+
+10. SUGESTÕES COM RECURSOS REAIS
+
+O catálogo deixou de ser apenas conceitual. Cada experiência agora possui um recurso externo acionável, aberto em nova aba, para ajudar o casal a executar a ideia imediatamente.
+
+A sugestão de cozinhar algo novo abre uma receita específica de macarrão à carbonara no TudoGostoso. A experiência de caminhar oferece um link para encontrar cafés em Florianópolis. A sugestão de livro apresenta o produto “Atividades para Casais” na Amazon Brasil. A noite de restaurante aponta para uma página de restaurantes românticos em Florianópolis no Tripadvisor. A playlist abre uma busca de playlist romântica no YouTube. O planejamento de viagem abre uma pesquisa de destinos próximos de Florianópolis no Google Travel.
+
+Os links ficam no campo resource de cada objeto Experience e são exibidos como uma ação “abrir recurso” dentro do card. O CTA principal da experiência destacada também abre diretamente o recurso correspondente.

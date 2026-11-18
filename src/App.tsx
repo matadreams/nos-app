@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   ChevronRight,
   CircleUserRound,
+  ExternalLink,
   Clock3,
   Link2,
   LockKeyhole,
@@ -58,6 +59,7 @@ type Experience = {
   color: string
   icon: LucideIcon
   tag?: string
+  resource: { label: string; url: string }
 }
 
 type Goal = {
@@ -131,6 +133,7 @@ const experiences: Experience[] = [
     color: 'peach',
     icon: Coffee,
     tag: 'Combina com vocês',
+    resource: { label: 'abrir receita', url: 'https://www.tudogostoso.com.br/receita/1624-macarrao-a-carbonara.html' },
   },
   {
     id: 2,
@@ -146,11 +149,12 @@ const experiences: Experience[] = [
     color: 'sage',
     icon: MapPin,
     tag: 'Leve e sem pressa',
+    resource: { label: 'encontrar cafés', url: 'https://www.google.com/maps/search/caf%C3%A9s+em+Florian%C3%B3polis' },
   },
   {
     id: 3,
-    title: 'Cartas para o futuro',
-    description: 'Escrevam uma carta para abrir daqui a um ano. Falem sobre onde querem estar e o que não querem esquecer.',
+    title: 'Ler um livro para casais juntos',
+    description: 'Escolham algumas perguntas, leiam um trecho e conversem sobre o que ele desperta em vocês.',
     category: 'conexao',
     categoryLabel: 'Conexão',
     duration: '30 min',
@@ -160,7 +164,8 @@ const experiences: Experience[] = [
     location: 'Um lugar tranquilo',
     color: 'lilac',
     icon: HeartHandshake,
-    tag: 'Para guardar',
+    tag: 'Recomendação de livro',
+    resource: { label: 'comprar livro', url: 'https://www.amazon.com.br/Atividades-para-Casais-Relacionamento-Portuguese/dp/3695902140' },
   },
   {
     id: 4,
@@ -176,6 +181,7 @@ const experiences: Experience[] = [
     color: 'sunset',
     icon: Sparkles,
     tag: 'Um pequeno evento',
+    resource: { label: 'ver restaurantes', url: 'https://www.tripadvisor.com.br/Restaurants-g303576-zfp3-Florianopolis_State_of_Santa_Catarina.html' },
   },
   {
     id: 5,
@@ -190,6 +196,7 @@ const experiences: Experience[] = [
     location: 'Em casa',
     color: 'blue',
     icon: Palette,
+    resource: { label: 'abrir playlist', url: 'https://www.youtube.com/results?search_query=playlist+rom%C3%A2ntica+casal' },
   },
   {
     id: 6,
@@ -204,6 +211,7 @@ const experiences: Experience[] = [
     location: 'Na mesa de vocês',
     color: 'yellow',
     icon: CalendarDays,
+    resource: { label: 'pesquisar destinos', url: 'https://www.google.com/travel/search?q=destinos%20pr%C3%B3ximos%20de%20Florian%C3%B3polis' },
   },
 ]
 
@@ -518,7 +526,7 @@ function HomePage({ navigate, savedIds, completedIds, toggleSaved, toggleComplet
           <div className="hero-card-kicker">45 MIN · EM CASA · R$ 60</div>
           <h2>Cozinhar algo novo<br /><em>juntos.</em></h2>
           <p>Uma receita nova, quatro mãos e nenhum compromisso com a perfeição.</p>
-          <button className="button button-dark" onClick={() => navigate('discover')}>Ver experiência <ArrowRight size={16} /></button>
+          <a className="button button-dark" href={featured.resource.url} target="_blank" rel="noreferrer">Abrir receita <ExternalLink size={15} /></a>
         </div>
         <div className="hero-illustration" aria-hidden="true">
           <div className="sun-shape" />
@@ -563,7 +571,7 @@ function FilterSelect({ value, options, onChange, icon: Icon }: { value: string;
 
 function ExperienceCard({ experience, isSaved, isCompleted, toggleSaved, toggleCompleted }: { experience: Experience; isSaved: boolean; isCompleted: boolean; toggleSaved: (id: number) => void; toggleCompleted: (id: number) => void }) {
   const Icon = experience.icon
-  return <article className={`experience-card ${isCompleted ? 'is-completed' : ''}`}><div className={`experience-visual ${experience.color}`}><div className="visual-pattern" /><div className="experience-icon"><Icon size={24} strokeWidth={1.7} /></div><button className={`save-button ${isSaved ? 'saved' : ''}`} onClick={() => toggleSaved(experience.id)} aria-label={isSaved ? 'Remover dos salvos' : 'Salvar experiência'}>{isSaved ? <BookmarkCheck size={17} fill="currentColor" /> : <Bookmark size={17} />}</button>{experience.tag && <span className="experience-tag">{experience.tag}</span>}{isCompleted && <span className="completed-chip"><Check size={13} /> vivido</span>}</div><div className="experience-body"><div className="experience-meta"><span>{experience.categoryLabel}</span><span className="dot-separator">·</span><span>{experience.duration}</span><span className="dot-separator">·</span><span>{experience.budget}</span></div><h3>{experience.title}</h3><p>{experience.description}</p><div className="experience-footer"><span className="location"><MapPin size={14} /> {experience.location}</span><button className={`complete-button ${isCompleted ? 'completed' : ''}`} onClick={() => toggleCompleted(experience.id)}>{isCompleted ? <><Check size={14} /> concluído</> : <>marcar como vivido <ArrowRight size={14} /></>}</button></div></div></article>
+  return <article className={`experience-card ${isCompleted ? 'is-completed' : ''}`}><div className={`experience-visual ${experience.color}`}><div className="visual-pattern" /><div className="experience-icon"><Icon size={24} strokeWidth={1.7} /></div><button className={`save-button ${isSaved ? 'saved' : ''}`} onClick={() => toggleSaved(experience.id)} aria-label={isSaved ? 'Remover dos salvos' : 'Salvar experiência'}>{isSaved ? <BookmarkCheck size={17} fill="currentColor" /> : <Bookmark size={17} />}</button>{experience.tag && <span className="experience-tag">{experience.tag}</span>}{isCompleted && <span className="completed-chip"><Check size={13} /> vivido</span>}</div><div className="experience-body"><div className="experience-meta"><span>{experience.categoryLabel}</span><span className="dot-separator">·</span><span>{experience.duration}</span><span className="dot-separator">·</span><span>{experience.budget}</span></div><h3>{experience.title}</h3><p>{experience.description}</p><div className="experience-footer"><span className="location"><MapPin size={14} /> {experience.location}</span><a className="resource-link" href={experience.resource.url} target="_blank" rel="noreferrer" title={`Abrir recurso: ${experience.resource.label}`}>{experience.resource.label} <ExternalLink size={12} /></a><button className={`complete-button ${isCompleted ? 'completed' : ''}`} onClick={() => toggleCompleted(experience.id)}>{isCompleted ? <><Check size={14} /> concluído</> : <>marcar como vivido <ArrowRight size={14} /></>}</button></div></div></article>
 }
 
 function EmptyState({ onReset }: { onReset: () => void }) { return <div className="empty-state"><div className="empty-icon"><Compass size={24} /></div><h3>Nenhuma ideia por aqui.</h3><p>Tentem abrir um pouco os filtros para encontrar um momento que caiba no agora.</p><button className="button button-outline" onClick={onReset}>Ver todas as ideias</button></div> }

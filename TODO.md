@@ -5,6 +5,7 @@
 - [x] Navegação principal entre Início, Descobrir, Objetivos, Comunidade e Minha conta.
   - Alternar as áreas sem recarregar a aplicação e manter o estado local.
 - [x] Área Descobrir com catálogo de experiências e atividades recomendadas para o casal.
+  - Cada sugestão possui um recurso externo acionável, como receita, livro para comprar, restaurante, playlist ou pesquisa de destino.
   - Exibir cards com título, tipo, duração, custo, descrição e ação principal.
 - [x] Filtros de recomendações por tempo disponível, orçamento e tipo de programa.
   - Permitir combinar filtros e voltar para a visão completa.
