@@ -1,4 +1,6 @@
-# MVP Nós — entregas
+# Nós — entregas
+
+## MVP web entregue
 
 - [x] Tela inicial com resumo do casal, visão rápida do progresso e uma recomendação em destaque.
   - Exibir saudação, contexto do casal, atividade recomendada e progresso de objetivos.
@@ -8,34 +10,39 @@
   - Cada sugestão possui um recurso externo acionável, como receita, livro para comprar, restaurante, playlist ou pesquisa de destino.
   - Exibir cards com título, tipo, duração, custo, descrição e ação principal.
 - [x] Filtros de recomendações por tempo disponível, orçamento e tipo de programa.
-  - Permitir combinar filtros e voltar para a visão completa.
 - [x] Cards de sugestões com ações funcionais para salvar e marcar como concluídas.
-  - Refletir visualmente os estados salvo e concluído e persistir no navegador.
 - [x] Objetivos compartilhados com descrição, etapas, indicador de progresso e edição.
-  - Criar, editar, excluir e avançar objetivos; preservar a tela após recarregar.
-- [x] Conta individual para cada pessoa.
-  - Exibir nome e e-mail próprios e permitir edição dos dados da conta.
-- [x] Vínculo de uma conta individual a um casal.
-  - Exibir código de convite, entrar com código, gerenciar vínculo e sair do casal.
-- [x] Bloqueio das funcionalidades compartilhadas enquanto a conta não estiver vinculada.
-  - Bloquear Início, Descobrir, Objetivos e Comunidade e mostrar CTA para conectar ao casal.
-- [x] Desbloqueio das funcionalidades após o vínculo.
-  - Liberar experiências, objetivos, progresso e comunidade competitiva após entrar em um casal.
-- [x] Sistema demonstrativo de amigos e outros casais.
-  - Mostrar casais, cidades, sequência de uso e atividades compartilhadas por eles.
-- [x] Competitividade saudável entre casais.
-  - Exibir pontos, ranking semanal, posição do casal, progresso para subir e placar de amigos.
-- [x] Convite de amigos dentro da Comunidade.
-  - Gerar código demonstrativo e permitir copiar o código pelo modal de convite.
-- [x] Perfil do casal e preferências.
-  - Mostrar nomes, tempo juntos, localização, disponibilidade, orçamento e preferências.
-- [x] Notificações, menu mobile, modais e estados de feedback.
-  - Tornar os controles principais interativos e responsivos.
-- [x] Documentação do produto e do desenvolvimento.
-  - Entregar o resumo completo em `resumo-completo-mvp-nos.txt`.
+- [x] Conta individual, vínculo com casal, bloqueio/desbloqueio das áreas compartilhadas e comunidade competitiva demonstrativa.
+- [x] Documentação do produto e do desenvolvimento em `resumo-completo-mvp-nos.txt`.
+- [x] README, `.gitignore`, CI com GitHub Actions e sincronização do repositório privado.
 
-## Limites atuais do MVP
+## Base mobile criada
 
-- Os dados estão persistidos apenas no `localStorage` do navegador.
-- O vínculo, amigos, ranking e atividades sociais são demonstrativos; ainda não há autenticação real, banco de dados, convites enviados por servidor ou sincronização entre usuários.
-- O código de convite demonstrativo do casal Yuri & Vitoria é `NOS-YV4K`.
+- [x] Criar o projeto Expo TypeScript em `mobile/` sem alterar a SPA web.
+  - O projeto usa React Native, Expo e orientação portrait.
+  - O nome, slug, scheme e identificadores são próprios do Nós.
+- [x] Recriar a navegação principal no celular com abas inferiores para Início, Descobrir, Objetivos, Comunidade e Conta.
+  - A navegação funciona com toque e mantém o estado enquanto o app permanece aberto.
+- [x] Levar para o mobile as experiências, objetivos, ranking demonstrativo, conta individual e vínculo com código de convite.
+- [x] Adicionar fallback local para a demonstração e abrir links externos das recomendações pelo celular.
+- [x] Adicionar cliente Supabase preparado para sessão, cadastro e login por e-mail.
+- [x] Criar migração Supabase com usuários, casais, membros, convites, experiências, objetivos, atividades, amizades e políticas RLS iniciais.
+- [x] Criar ícones nativos da marca Nós sem depender do ícone genérico do Expo.
+- [x] Documentar a arquitetura e o caminho para EAS em `plan.md` e `mobile/README.md`.
+
+## Próximas entregas para produto real
+
+- [ ] Criar/selecionar o projeto Supabase e aplicar `supabase/migrations/001_initial.sql`.
+  - Configurar `EXPO_PUBLIC_SUPABASE_URL` e `EXPO_PUBLIC_SUPABASE_ANON_KEY` somente por ambiente seguro.
+- [ ] Substituir o fallback local por repositórios Supabase para perfil, casal, experiências, objetivos e atividades.
+  - Validar sincronização usando duas contas individuais em dois aparelhos.
+- [ ] Implementar convite real entre contas e limite de dois membros por casal no servidor.
+- [ ] Configurar notificações push, deep link para convite e preferências de privacidade.
+- [ ] Criar conta Expo/EAS, configurar credenciais Android/iOS e gerar APK/AAB e build para TestFlight.
+- [ ] Fazer testes em aparelho Android e iPhone, corrigindo teclado, acessibilidade, links e estados offline.
+- [ ] Publicar primeiro em teste fechado na Google Play e TestFlight antes da distribuição pública.
+
+## Limites conhecidos desta etapa
+
+- Sem as credenciais de um projeto Supabase, o app abre em modo demonstrativo local e não sincroniza usuários entre aparelhos.
+- A geração de builds de loja exige contas de desenvolvedor Google/Apple e configuração de credenciais fora do repositório.

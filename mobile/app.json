@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "Nós",
+    "slug": "nos-app",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "nos",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.matadreams.nos"
+    },
+    "android": {
+      "package": "com.matadreams.nos",
+      "adaptiveIcon": {
+        "backgroundColor": "#D8785C",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
