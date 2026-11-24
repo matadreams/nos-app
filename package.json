@@ -2,6 +2,7 @@
   "name": "nos-mvp",
   "private": true,
   "version": "0.1.0",
+  "description": "MVP do Nós: experiências, objetivos e comunidade competitiva para casais",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 3000",
